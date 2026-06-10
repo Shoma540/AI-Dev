@@ -1,0 +1,50 @@
+name: Post to Social Media
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install anthropic tweepy requests google-api-python-client google-auth
+
+      - name: Run social media post script
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          X_JP_API_KEY: ${{ secrets.X_JP_API_KEY }}
+          X_JP_API_SECRET: ${{ secrets.X_JP_API_SECRET }}
+          X_JP_ACCESS_TOKEN: ${{ secrets.X_JP_ACCESS_TOKEN }}
+          X_JP_ACCESS_SECRET: ${{ secrets.X_JP_ACCESS_SECRET }}
+          X_EN_API_KEY: ${{ secrets.X_EN_API_KEY }}
+          X_EN_API_SECRET: ${{ secrets.X_EN_API_SECRET }}
+          X_EN_ACCESS_TOKEN: ${{ secrets.X_EN_ACCESS_TOKEN }}
+          X_EN_ACCESS_SECRET: ${{ secrets.X_EN_ACCESS_SECRET }}
+          IG_JP_ACCESS_TOKEN: ${{ secrets.IG_JP_ACCESS_TOKEN }}
+          IG_JP_USER_ID: ${{ secrets.IG_JP_USER_ID }}
+          IG_EN_ACCESS_TOKEN: ${{ secrets.IG_EN_ACCESS_TOKEN }}
+          IG_EN_USER_ID: ${{ secrets.IG_EN_USER_ID }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_JP_ACCESS_TOKEN: ${{ secrets.YT_JP_ACCESS_TOKEN }}
+          YT_JP_REFRESH_TOKEN: ${{ secrets.YT_JP_REFRESH_TOKEN }}
+          YT_EN_ACCESS_TOKEN: ${{ secrets.YT_EN_ACCESS_TOKEN }}
+          YT_EN_REFRESH_TOKEN: ${{ secrets.YT_EN_REFRESH_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          DRY_RUN: ${{ vars.DRY_RUN }}
+        run: |
+          python scripts/post_social.py
