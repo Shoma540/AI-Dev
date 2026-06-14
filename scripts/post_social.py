@@ -1,7 +1,7 @@
 """
 SNS自動投稿スクリプト
 - commitメッセージから [screenshot: ファイル名] [video: ファイル名] を抽出
-- README.md を Claude API に渡して投稿文を生成
+- README.md を Gemini API に渡して投稿文を生成
 - X（日英）・Instagram（日英）・YouTube（日英）に投稿
 """
 
@@ -9,9 +9,9 @@ import os
 import re
 import sys
 import json
-import anthropic
 import tweepy
 import requests
+from google import genai
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
@@ -58,11 +58,20 @@ def load_readme() -> str:
 
 
 # ─────────────────────────────────────────
-# 3. Claude API で投稿文を生成
+# 3. Gemini API で投稿文を生成
 # ─────────────────────────────────────────
 
 def generate_posts(readme: str, repo_name: str, has_video: bool) -> dict:
-    client = anthropic.Anthropic(api_key=os.environ["CLAUDE_API_KEY"])
+    """
+    Gemini 2.0 Flash で投稿文を生成。
+    戻り値:
+    {
+        "x_jp": "...", "x_en": "...",
+        "ig_jp": "...", "ig_en": "...",
+        "yt_jp": "...", "yt_en": "..."  # has_video=True のときのみ
+    }
+    """
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
     yt_format = ""
     yt_note = ""
@@ -92,25 +101,24 @@ README:
 }}
 
 注意:
-- JSONのみ出力。説明文・マークダウン記号は不要。
+- JSONのみ出力。説明文・マークダウン記号（```等）は不要。
 - 文字数制限を厳守（X: 280文字以内）。
 - ハッシュタグはX用5個・Instagram用30個。
 {yt_note}
 """
 
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=1000,
-        messages=[{"role": "user", "content": prompt}],
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt,
     )
 
-    raw = message.content[0].text.strip()
+    raw = response.text.strip()
     raw = re.sub(r"^```json\s*|^```\s*|```$", "", raw, flags=re.MULTILINE).strip()
 
     try:
         return json.loads(raw)
     except json.JSONDecodeError as e:
-        print(f"[ERROR] Claude APIのレスポンスをJSONパースできませんでした: {e}")
+        print(f"[ERROR] Gemini APIのレスポンスをJSONパースできませんでした: {e}")
         print(f"[DEBUG] raw response:\n{raw}")
         sys.exit(1)
 
@@ -280,7 +288,7 @@ def main():
     readme = load_readme()
     repo_name = REPO.split("/")[-1] if "/" in REPO else REPO
 
-    print("[INFO] Claude APIで投稿文を生成中...")
+    print("[INFO] Gemini APIで投稿文を生成中...")
     posts = generate_posts(readme, repo_name, has_video=bool(video_filename))
     print("[INFO] 生成完了")
 
