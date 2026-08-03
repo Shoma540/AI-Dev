@@ -20,19 +20,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install google-genai tweepy requests google-api-python-client google-auth
+          pip install google-genai requests google-api-python-client google-auth
 
       - name: Run social media post script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          X_JP_API_KEY: ${{ secrets.X_JP_API_KEY }}
-          X_JP_API_SECRET: ${{ secrets.X_JP_API_SECRET }}
-          X_JP_ACCESS_TOKEN: ${{ secrets.X_JP_ACCESS_TOKEN }}
-          X_JP_ACCESS_SECRET: ${{ secrets.X_JP_ACCESS_SECRET }}
-          X_EN_API_KEY: ${{ secrets.X_EN_API_KEY }}
-          X_EN_API_SECRET: ${{ secrets.X_EN_API_SECRET }}
-          X_EN_ACCESS_TOKEN: ${{ secrets.X_EN_ACCESS_TOKEN }}
-          X_EN_ACCESS_SECRET: ${{ secrets.X_EN_ACCESS_SECRET }}
           IG_JP_ACCESS_TOKEN: ${{ secrets.IG_JP_ACCESS_TOKEN }}
           IG_JP_USER_ID: ${{ secrets.IG_JP_USER_ID }}
           IG_EN_ACCESS_TOKEN: ${{ secrets.IG_EN_ACCESS_TOKEN }}

@@ -9,7 +9,6 @@ import os
 import re
 import sys
 import json
-import tweepy
 import requests
 from google import genai
 from googleapiclient.discovery import build
@@ -66,7 +65,6 @@ def generate_posts(readme: str, repo_name: str, has_video: bool) -> dict:
     Gemini 2.0 Flash で投稿文を生成。
     戻り値:
     {
-        "x_jp": "...", "x_en": "...",
         "ig_jp": "...", "ig_en": "...",
         "yt_jp": "...", "yt_en": "..."  # has_video=True のときのみ
     }
@@ -94,16 +92,13 @@ README:
 
 出力フォーマット（JSONのみ・マークダウン不要）:
 {{
-  "x_jp": "X日本語投稿文（280文字以内）\\nキャッチコピー1行\\n機能3点（箇条書き）\\nGitHubリンク: https://github.com/{REPO}\\nハッシュタグ5個（#個人開発 #Webアプリ #駆け出しエンジニア 等）",
-  "x_en": "X English post (within 280 chars)\\n1 catchphrase\\n3 features (bullet points)\\nGitHub: https://github.com/{REPO}\\n5 hashtags (#buildinpublic #opensource #webdev #sideproject etc)",
   "ig_jp": "Instagram日本語投稿文\\nキャッチコピー1行\\n機能3点（箇条書き）\\nGitHubリンク: https://github.com/{REPO}\\nハッシュタグ30個",
   "ig_en": "Instagram English post\\n1 catchphrase\\n3 features (bullet points)\\nGitHub: https://github.com/{REPO}\\n30 hashtags",{yt_format}
 }}
 
 注意:
 - JSONのみ出力。説明文・マークダウン記号（```等）は不要。
-- 文字数制限を厳守（X: 280文字以内）。
-- ハッシュタグはX用5個・Instagram用30個。
+- ハッシュタグはInstagram用30個。
 {yt_note}
 """
 
@@ -124,36 +119,7 @@ README:
 
 
 # ─────────────────────────────────────────
-# 4. X（Twitter）に投稿
-# ─────────────────────────────────────────
-
-def post_to_x(text: str, image_path: str, prefix: str, env_prefix: str):
-    if DRY_RUN:
-        print(f"[DRY_RUN] {prefix} 投稿文:\n{text}\n画像: {image_path}\n")
-        return
-
-    client = tweepy.Client(
-        consumer_key=os.environ[f"{env_prefix}_API_KEY"],
-        consumer_secret=os.environ[f"{env_prefix}_API_SECRET"],
-        access_token=os.environ[f"{env_prefix}_ACCESS_TOKEN"],
-        access_token_secret=os.environ[f"{env_prefix}_ACCESS_SECRET"],
-    )
-
-    auth = tweepy.OAuth1UserHandler(
-        os.environ[f"{env_prefix}_API_KEY"],
-        os.environ[f"{env_prefix}_API_SECRET"],
-        os.environ[f"{env_prefix}_ACCESS_TOKEN"],
-        os.environ[f"{env_prefix}_ACCESS_SECRET"],
-    )
-    api_v1 = tweepy.API(auth)
-
-    media = api_v1.media_upload(filename=image_path)
-    client.create_tweet(text=text, media_ids=[media.media_id])
-    print(f"[OK] {prefix} 投稿完了")
-
-
-# ─────────────────────────────────────────
-# 5. Instagram に投稿
+# 4. Instagram に投稿
 # ─────────────────────────────────────────
 
 def post_to_instagram(text: str, image_url: str, prefix: str, env_prefix: str):
@@ -193,7 +159,7 @@ def post_to_instagram(text: str, image_url: str, prefix: str, env_prefix: str):
 
 
 # ─────────────────────────────────────────
-# 6. YouTube に投稿
+# 5. YouTube に投稿
 # ─────────────────────────────────────────
 
 def get_youtube_client(env_prefix: str):
@@ -293,12 +259,11 @@ def main():
     print("[INFO] 生成完了")
 
     if screenshot_filename:
-        post_to_x(text=posts["x_jp"], image_path=screenshot_local, prefix="X_JP", env_prefix="X_JP")
-        post_to_x(text=posts["x_en"], image_path=screenshot_local, prefix="X_EN", env_prefix="X_EN")
         post_to_instagram(text=posts["ig_jp"], image_url=screenshot_url, prefix="IG_JP", env_prefix="IG_JP")
         post_to_instagram(text=posts["ig_en"], image_url=screenshot_url, prefix="IG_EN", env_prefix="IG_EN")
-        post_community_to_youtube(text=posts.get("yt_jp", posts["x_jp"]), image_url=screenshot_url, prefix="YT_JP", env_prefix="YT_JP")
-        post_community_to_youtube(text=posts.get("yt_en", posts["x_en"]), image_url=screenshot_url, prefix="YT_EN", env_prefix="YT_EN")
+        if "yt_jp" in posts and "yt_en" in posts:
+            post_community_to_youtube(text=posts["yt_jp"], image_url=screenshot_url, prefix="YT_JP", env_prefix="YT_JP")
+            post_community_to_youtube(text=posts["yt_en"], image_url=screenshot_url, prefix="YT_EN", env_prefix="YT_EN")
 
     if video_filename:
         post_video_to_youtube(description=posts["yt_jp"], video_path=video_local, repo_name=repo_name, prefix="YT_JP", env_prefix="YT_JP")
